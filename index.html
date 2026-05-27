@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IE00B7Y34M31: Marktverlauf und Trump-Iran-Timeline</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero">
+        <p class="eyebrow">Market Context One-Pager</p>
+        <div class="hero-copy">
+          <div>
+            <h1>IE00B7Y34M31 im politischen Nachrichtenumfeld</h1>
+            <p class="intro">
+              Diese Seite verbindet den historischen Kursverlauf aus der vorhandenen CSV mit
+              einer redaktionell gepflegten Timeline zu Donald Trumps Einlassungen im Kontext
+              Iran. Die Darstellung bleibt bewusst neutral und zeigt zeitliche Nahe, nicht
+              belegte Kausalitat.
+            </p>
+          </div>
+          <aside class="hero-note">
+            <h2>Hinweis</h2>
+            <p>
+              Die Ereignisliste ist als getrennte Datenquelle vorbereitet. Aussage-Paraphrasen
+              und Quellen sollten vor Veroffentlichung redaktionell verifiziert werden.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="Kennzahlen">
+        <article class="metric-card">
+          <span class="metric-label">Zeitraum</span>
+          <strong class="metric-value" data-metric="range">-</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Schlusskurs Start</span>
+          <strong class="metric-value" data-metric="start">-</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Schlusskurs Ende</span>
+          <strong class="metric-value" data-metric="end">-</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Veranderung</span>
+          <strong class="metric-value" data-metric="change">-</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Tiefster Schluss</span>
+          <strong class="metric-value" data-metric="low">-</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Hochster Schluss</span>
+          <strong class="metric-value" data-metric="high">-</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Trades im Zeitraum</span>
+          <strong class="metric-value" data-metric="trade-count">-</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Realisierter Gewinn/Verlust</span>
+          <strong class="metric-value" data-metric="realized-pnl">-</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Gezahlte Steuern</span>
+          <strong class="metric-value" data-metric="tax-paid">-</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Netto nach Steuern</span>
+          <strong class="metric-value" data-metric="net-pnl">-</strong>
+        </article>
+      </section>
+
+      <section class="chart-section">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Preisverlauf</p>
+            <h2>Kurschart mit Ereignismarkern</h2>
+          </div>
+          <p class="section-copy">
+            Visualisiert wird zunachst der Schlusskurs. Ereignisse werden auf den nachsten
+            verfugbaren Handelstag gemappt und im Chart sowie in der Timeline gespiegelt.
+          </p>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <p class="chart-label">Schlusskurs</p>
+              <strong id="chartTitle">Lade Daten...</strong>
+            </div>
+            <div class="legend">
+              <span><i class="legend-line"></i>S&P 500 3x</span>
+              <span><i class="legend-line legend-msci"></i>MSCI World</span>
+              <span><i class="legend-dot"></i>Ereignis</span>
+              <span><i class="legend-trade legend-buy"></i>Kauf</span>
+              <span><i class="legend-trade legend-sell"></i>Verkauf</span>
+            </div>
+          </div>
+
+          <div class="chart-stage">
+            <svg id="priceChart" viewBox="0 0 960 460" role="img" aria-labelledby="chartHeading chartDesc">
+              <title id="chartHeading">Historischer Preisverlauf</title>
+              <desc id="chartDesc">SVG-Chart fuer den Schlusskurs mit annotierten Ereignissen.</desc>
+            </svg>
+            <div class="chart-tooltip" id="chartTooltip" hidden></div>
+          </div>
+
+          <div class="chart-footer">
+            <p id="chartStatus">CSV wird geladen...</p>
+            <p class="chart-note">Die Datensaetze sind statisch eingebettet und laufen ohne separaten Webserver.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="timeline-section">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Transaktionen</p>
+            <h2>Ausgefuhrte Trades im Betrachtungszeitraum</h2>
+          </div>
+          <p class="section-copy">
+            Eingeblendet werden nur ausgefuehrte Transaktionen fuer dieselbe ISIN innerhalb des
+            dargestellten Chart-Zeitraums. Stornierte Orders und ausserhalb des Fensters liegende
+            Trades bleiben bewusst ausgeblendet.
+          </p>
+        </div>
+
+        <div class="timeline-grid transaction-grid" id="transactionGrid" aria-live="polite"></div>
+      </section>
+
+      <section class="timeline-section">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Ereignis-Timeline</p>
+            <h2>Trump-Aussagen im Iran-Kontext</h2>
+          </div>
+          <p class="section-copy">
+            Die Karten sind fur Paraphrasen, Quellen und eine knappe Markteinordnung ausgelegt.
+            Aktuell ist die Datenstruktur vorbereitet; verifizierte Inhalte konnen in
+            <span class="mono">events.js</span> gepflegt werden.
+          </p>
+        </div>
+
+        <div class="timeline-grid" id="timelineGrid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script src="./events.js"></script>
+    <script src="./data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
