@@ -23,9 +23,11 @@
   const events = Array.isArray(window.TRUMP_IRAN_EVENTS) ? window.TRUMP_IRAN_EVENTS : [];
   const state = {
     points: [],
+    msciPoints: [],
     eventMapping: [],
     transactionMapping: [],
     activeItemId: null,
+    chartInstance: null,
   };
 
   initialize();
@@ -53,7 +55,7 @@
       const msciPoints = msciText.trim() ? parseCsv(msciText) : [];
 
       if (!points.length) {
-        throw new Error("CSV enthalt keine verwertbaren Zeilen.");
+        throw new Error("CSV enthält keine verwertbaren Zeilen.");
       }
 
       const transactions = transactionsText
@@ -269,175 +271,168 @@
   }
 
   function renderChart(points, msciPoints, eventMapping, transactionMapping) {
-    const width = 960;
-    const height = 460;
-    const padding = { top: 28, right: 28, bottom: 48, left: 74 };
-    const innerWidth = width - padding.left - padding.right;
-    const innerHeight = height - padding.top - padding.bottom;
-    const closes = points.map((point) => point.close);
-    const msciCloses = msciPoints.length > 0 ? msciPoints.map((point) => point.close) : [];
+    const canvas = document.getElementById("priceChart");
+    const ctx = canvas.getContext("2d");
+
+    if (state.chartInstance) {
+      state.chartInstance.destroy();
+      state.chartInstance = null;
+    }
+
+    const closes = points.map((p) => p.close);
+    const msciCloses = msciPoints.length > 0 ? msciPoints.map((p) => p.close) : [];
     const allCloses = msciCloses.length > 0 ? [...closes, ...msciCloses] : closes;
     const minPrice = Math.min(...allCloses);
     const maxPrice = Math.max(...allCloses);
-    const minX = points[0].date.getTime();
-    const maxX = points[points.length - 1].date.getTime();
+    const yPad = (maxPrice - minPrice) * 0.06;
 
-    chart.innerHTML = `
-      <defs>
-        <linearGradient id="priceAreaFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="rgba(11, 110, 79, 0.26)"></stop>
-          <stop offset="100%" stop-color="rgba(11, 110, 79, 0)"></stop>
-        </linearGradient>
-      </defs>
-    `;
+    const eventScatterData = eventMapping
+      .filter((e) => e.mappedPoint)
+      .map((e) => ({ x: e.mappedPoint.date.getTime(), y: e.mappedPoint.close, _ref: e, _type: "event" }));
 
-    const xScale = (value) => padding.left + ((value - minX) / (maxX - minX || 1)) * innerWidth;
-    const yScale = (value) => padding.top + innerHeight - ((value - minPrice) / (maxPrice - minPrice || 1)) * innerHeight;
-    const linePath = points
-      .map((point, index) => `${index === 0 ? "M" : "L"}${xScale(point.date.getTime()).toFixed(2)},${yScale(point.close).toFixed(2)}`)
-      .join(" ");
-    const areaPath = `${linePath} L ${xScale(points[points.length - 1].date.getTime()).toFixed(2)},${(padding.top + innerHeight).toFixed(2)} L ${xScale(points[0].date.getTime()).toFixed(2)},${(padding.top + innerHeight).toFixed(2)} Z`;
-    
-    const msciLinePath = msciPoints.length > 0
-      ? msciPoints
-        .map((point, index) => `${index === 0 ? "M" : "L"}${xScale(point.date.getTime()).toFixed(2)},${yScale(point.close).toFixed(2)}`)
-        .join(" ")
-      : "";
+    const buyScatterData = transactionMapping
+      .filter((t) => t.mappedPoint && t.type === "Buy")
+      .map((t) => ({ x: t.mappedPoint.date.getTime(), y: t.mappedPoint.close, _ref: t, _type: "transaction" }));
 
-    for (let index = 0; index < 5; index += 1) {
-      const ratio = index / 4;
-      const yValue = minPrice + (maxPrice - minPrice) * ratio;
-      const y = yScale(yValue);
-      chart.appendChild(svgElement("line", {
-        x1: padding.left,
-        x2: width - padding.right,
-        y1: y,
-        y2: y,
-        class: "grid-line",
-      }));
-      chart.appendChild(svgElement("text", {
-        x: 14,
-        y: y + 5,
-        class: "axis-label",
-      }, formatCurrency(yValue, points[0].currency)));
+    const sellScatterData = transactionMapping
+      .filter((t) => t.mappedPoint && t.type === "Sell")
+      .map((t) => ({ x: t.mappedPoint.date.getTime(), y: t.mappedPoint.close, _ref: t, _type: "transaction" }));
+
+    const datasets = [
+      {
+        label: "S&P 500 3x",
+        data: points.map((p) => ({ x: p.date.getTime(), y: p.close })),
+        borderColor: "#0b6e4f",
+        backgroundColor: "rgba(11,110,79,0.12)",
+        fill: true,
+        tension: 0,
+        pointRadius: 0,
+        borderWidth: 3,
+        order: 3,
+      },
+    ];
+
+    if (msciPoints.length > 0) {
+      datasets.push({
+        label: "MSCI World",
+        data: msciPoints.map((p) => ({ x: p.date.getTime(), y: p.close })),
+        borderColor: "#5c6c66",
+        borderDash: [5, 5],
+        backgroundColor: "transparent",
+        fill: false,
+        tension: 0,
+        pointRadius: 0,
+        borderWidth: 2,
+        order: 2,
+      });
     }
 
-    const xTickIndices = [0, Math.floor(points.length / 2), points.length - 1];
-    xTickIndices.forEach((pointIndex) => {
-      const point = points[pointIndex];
-      chart.appendChild(svgElement("text", {
-        x: xScale(point.date.getTime()),
-        y: height - 14,
-        class: "axis-label",
-        "text-anchor": pointIndex === 0 ? "start" : pointIndex === points.length - 1 ? "end" : "middle",
-      }, formatDate(point.date, true)));
+    datasets.push(
+      {
+        label: "Ereignisse",
+        type: "scatter",
+        data: eventScatterData,
+        backgroundColor: "#f5c400",
+        borderColor: "rgba(255,250,241,0.95)",
+        borderWidth: 3,
+        pointRadius: 8,
+        pointHoverRadius: 10,
+        order: 0,
+      },
+      {
+        label: "Kauf",
+        type: "scatter",
+        data: buyScatterData,
+        backgroundColor: "#1f8f63",
+        borderColor: "rgba(255,250,241,0.95)",
+        borderWidth: 2,
+        pointStyle: "rect",
+        pointRadius: 8,
+        pointHoverRadius: 10,
+        order: 1,
+      },
+      {
+        label: "Verkauf",
+        type: "scatter",
+        data: sellScatterData,
+        backgroundColor: "#b7472f",
+        borderColor: "rgba(255,250,241,0.95)",
+        borderWidth: 2,
+        pointStyle: "rect",
+        pointRadius: 8,
+        pointHoverRadius: 10,
+        order: 1,
+      },
+    );
+
+    const currencyCode = points[0].currency;
+    state.chartInstance = new Chart(ctx, {
+      type: "line",
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 960 / 460,
+        animation: false,
+        parsing: false,
+        scales: {
+          x: {
+            type: "linear",
+            min: points[0].date.getTime(),
+            max: points[points.length - 1].date.getTime(),
+            ticks: {
+              maxTicksLimit: 3,
+              callback: (value) =>
+                new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value)),
+              color: "#5c6c66",
+              font: { size: 13 },
+            },
+            grid: { color: "rgba(24,34,34,0.10)" },
+          },
+          y: {
+            min: minPrice - yPad,
+            max: maxPrice + yPad,
+            ticks: {
+              maxTicksLimit: 5,
+              callback: (value) => formatCurrency(value, currencyCode),
+              color: "#5c6c66",
+              font: { size: 13 },
+            },
+            grid: { color: "rgba(24,34,34,0.10)" },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false },
+        },
+      },
     });
 
-    chart.appendChild(svgElement("path", { d: areaPath, class: "price-area" }));
-    chart.appendChild(svgElement("path", { d: linePath, class: "price-path" }));
-    if (msciLinePath) {
-      chart.appendChild(svgElement("path", { d: msciLinePath, class: "msci-path", "stroke-dasharray": "5,5" }));
+    canvas.addEventListener("mousemove", handleChartMouseMove);
+    canvas.addEventListener("mouseleave", clearActiveItem);
+  }
+
+  function handleChartMouseMove(event) {
+    if (!state.chartInstance) return;
+    const elements = state.chartInstance.getElementsAtEventForMode(event, "point", { intersect: true }, false);
+    if (!elements.length) {
+      clearActiveItem();
+      return;
     }
-
-    transactionMapping.forEach((transaction) => {
-      if (!transaction.mappedPoint) {
-        return;
-      }
-
-      const x = xScale(transaction.mappedPoint.date.getTime());
-      const y = yScale(transaction.mappedPoint.close);
-
-      const activate = () => setActiveItem(transaction.id, x, y, buildTransactionTooltip(transaction));
-      const deactivate = () => clearActiveItem();
-
-      // Create invisible larger hit area first to prevent flickering
-      const hitArea = svgElement("rect", {
-        x: x - 12,
-        y: y - 12,
-        width: 24,
-        height: 24,
-        rx: 4,
-        fill: "transparent",
-        "pointer-events": "all",
-        "data-hit-area": "true",
-      });
-
-      hitArea.addEventListener("mouseenter", activate);
-      hitArea.addEventListener("focus", activate);
-      hitArea.addEventListener("mouseleave", deactivate);
-      hitArea.addEventListener("blur", deactivate);
-
-      chart.appendChild(hitArea);
-
-      // Create visible marker on top
-      const marker = svgElement("rect", {
-        x: x - 7,
-        y: y - 7,
-        width: 14,
-        height: 14,
-        rx: 4,
-        class: `transaction-marker transaction-marker-${transaction.type.toLowerCase()}`,
-        tabindex: 0,
-        role: "button",
-        "data-item-id": transaction.id,
-        "aria-label": `${transaction.type} ${transaction.shares} Anteile am ${formatDate(transaction.date)}`,
-        "pointer-events": "none",
-      });
-
-      chart.appendChild(marker);
-    });
-
-    eventMapping.forEach((event) => {
-      if (!event.mappedPoint) {
-        return;
-      }
-
-      const x = xScale(event.mappedPoint.date.getTime());
-      const y = yScale(event.mappedPoint.close);
-      const stemTop = Math.max(padding.top + 24, y - 62);
-      const stem = svgElement("line", {
-        x1: x,
-        x2: x,
-        y1: stemTop,
-        y2: y - 12,
-        class: "event-stem",
-      });
-
-      const activate = () => setActiveItem(event.id, x, y, buildEventTooltip(event));
-      const deactivate = () => clearActiveItem();
-
-      // Create invisible larger hit area first to prevent flickering
-      const hitArea = svgElement("circle", {
-        cx: x,
-        cy: y,
-        r: 16,
-        fill: "transparent",
-        "pointer-events": "all",
-        "data-hit-area": "true",
-      });
-
-      hitArea.addEventListener("mouseenter", activate);
-      hitArea.addEventListener("focus", activate);
-      hitArea.addEventListener("mouseleave", deactivate);
-      hitArea.addEventListener("blur", deactivate);
-
-      // Create visible marker on top
-      const marker = svgElement("circle", {
-        cx: x,
-        cy: y,
-        r: 8,
-        class: "event-marker",
-        tabindex: 0,
-        role: "button",
-        "data-item-id": event.id,
-        "aria-label": `${event.title} am ${formatDate(event.eventDate)}`,
-        "pointer-events": "none",
-      });
-
-      chart.appendChild(stem);
-      chart.appendChild(hitArea);
-      chart.appendChild(marker);
-    });
+    const el = elements[0];
+    const dataPoint = state.chartInstance.data.datasets[el.datasetIndex].data[el.index];
+    if (!dataPoint || !dataPoint._ref) {
+      clearActiveItem();
+      return;
+    }
+    const canvasRect = chart.getBoundingClientRect();
+    const x = canvasRect.left + el.element.x;
+    const y = canvasRect.top + el.element.y;
+    if (dataPoint._type === "event") {
+      setActiveItem(dataPoint._ref.id, x, y, buildEventTooltip(dataPoint._ref));
+    } else {
+      setActiveItem(dataPoint._ref.id, x, y, buildTransactionTooltip(dataPoint._ref));
+    }
   }
 
   function renderTimeline(eventMapping) {
@@ -472,21 +467,8 @@
         if (!event.mappedPoint) {
           return;
         }
-
-        const width = 960;
-        const padding = { left: 74, right: 28 };
-        const innerWidth = width - padding.left - padding.right;
-        const minX = state.points[0].date.getTime();
-        const maxX = state.points[state.points.length - 1].date.getTime();
-        const x = padding.left + ((event.mappedPoint.date.getTime() - minX) / (maxX - minX || 1)) * innerWidth;
-        const closes = state.points.map((point) => point.close);
-        const msciCloses = state.msciPoints && state.msciPoints.length > 0 ? state.msciPoints.map((point) => point.close) : [];
-        const allCloses = msciCloses.length > 0 ? [...closes, ...msciCloses] : closes;
-        const minPrice = Math.min(...allCloses);
-        const maxPrice = Math.max(...allCloses);
-        const innerHeight = 460 - 28 - 48;
-        const y = 28 + innerHeight - ((event.mappedPoint.close - minPrice) / (maxPrice - minPrice || 1)) * innerHeight;
-        setActiveItem(event.id, x, y, buildEventTooltip(event));
+        const coordinates = getChartCoordinatesForPoint(event.mappedPoint);
+        setActiveItem(event.id, coordinates.x, coordinates.y, buildEventTooltip(event));
       });
 
       card.addEventListener("mouseleave", clearActiveItem);
@@ -544,7 +526,7 @@
       <article class="empty-state">
         <h3>Event-Daten vorbereitet</h3>
         <p>
-          In <span class="mono">events.js</span> konnen verifizierte Paraphrasen zu Trump und Iran
+          In <span class="mono">events.js</span> können verifizierte Paraphrasen zu Trump und Iran
           eingetragen werden. Jeder Eintrag erwartet Datum, Titel, Summary, Quelle, Relevanz und
           optional eine kurze Markteinordnung.
         </p>
@@ -557,20 +539,15 @@
       <article class="empty-state">
         <h3>Transaktionsdaten vorbereitet</h3>
         <p>
-          Sobald die Broker-CSV verfuegbar ist, werden hier nur ausgefuehrte Kaeufe und Verkaeufe
-          fuer dieselbe ISIN innerhalb des dargestellten Zeitraums gezeigt.
+          Sobald die Broker-CSV verfügbar ist, werden hier nur ausgeführte Käufe und Verkäufe
+          für dieselbe ISIN innerhalb des dargestellten Zeitraums gezeigt.
         </p>
       </article>
     `;
   }
 
   function renderChartFallback() {
-    chart.innerHTML = "";
-    chart.appendChild(svgElement("text", {
-      x: 54,
-      y: 120,
-      class: "axis-label",
-    }, "Die Visualisierung erscheint, sobald die CSV uber HTTP geladen wird."));
+    chartStatus.textContent = "Die Visualisierung konnte nicht geladen werden.";
   }
 
   function setActiveItem(itemId, x, y, tooltipContent) {
@@ -585,33 +562,27 @@
       card.classList.toggle("is-active", card.dataset.eventId === itemId);
     });
 
-    chart.querySelectorAll(".event-marker, .transaction-marker").forEach((marker) => {
-      marker.classList.toggle("is-active", marker.getAttribute("data-item-id") === itemId);
-    });
-
     tooltip.hidden = false;
     tooltip.innerHTML = tooltipContent;
 
     // Position tooltip and adjust for bounds
     requestAnimationFrame(() => {
       const tooltipRect = tooltip.getBoundingClientRect();
-      const chartStage = chart.parentElement;
-      const chartStageRect = chartStage.getBoundingClientRect();
-      
-      let tooltipCenterX = (x / 960) * chart.clientWidth;
-      let tooltipTopY = (y / 460) * chart.clientHeight;
+
+      let tooltipCenterX = x;
+      let tooltipTopY = y;
 
       const tooltipWidth = tooltipRect.width;
       const tooltipHeight = tooltipRect.height;
 
       // Clamp horizontal position to keep tooltip fully visible
-      const minLeftPx = tooltipWidth / 2;
-      const maxLeftPx = chart.clientWidth - tooltipWidth / 2;
+      const minLeftPx = tooltipWidth / 2 + 8;
+      const maxLeftPx = window.innerWidth - tooltipWidth / 2 - 8;
       tooltipCenterX = Math.max(minLeftPx, Math.min(maxLeftPx, tooltipCenterX));
 
       // Check if there's enough space above; if not, show below
       const spaceAbove = tooltipTopY;
-      const spaceBelow = chart.clientHeight - tooltipTopY;
+      const spaceBelow = window.innerHeight - tooltipTopY;
       const gap = 14;
 
       let finalTop;
@@ -636,14 +607,18 @@
     state.activeItemId = null;
     tooltip.hidden = true;
     document.querySelectorAll(".timeline-card").forEach((card) => card.classList.remove("is-active"));
-    chart.querySelectorAll(".event-marker, .transaction-marker").forEach((marker) => marker.classList.remove("is-active"));
+  }
+
+  function truncate(text, max) {
+    const s = String(text || "");
+    return s.length > max ? `${s.slice(0, max)}\u2026` : s;
   }
 
   function buildEventTooltip(event) {
     return `
-      <strong>${escapeHtml(event.title)}</strong><br />
+      <strong>${escapeHtml(truncate(event.title, 80))}</strong><br />
       <span>${formatDate(event.eventDate)}</span><br />
-      <span>${escapeHtml(event.summary || "")}</span>
+      <span>${escapeHtml(truncate(event.summary, 250))}</span>
     `;
   }
 
@@ -657,35 +632,12 @@
   }
 
   function getChartCoordinatesForPoint(point) {
-    const width = 960;
-    const height = 460;
-    const padding = { top: 28, right: 28, bottom: 48, left: 74 };
-    const innerWidth = width - padding.left - padding.right;
-    const innerHeight = height - padding.top - padding.bottom;
-    const closes = state.points.map((entry) => entry.close);
-    const msciCloses = state.msciPoints && state.msciPoints.length > 0 ? state.msciPoints.map((entry) => entry.close) : [];
-    const allCloses = msciCloses.length > 0 ? [...closes, ...msciCloses] : closes;
-    const minPrice = Math.min(...allCloses);
-    const maxPrice = Math.max(...allCloses);
-    const minX = state.points[0].date.getTime();
-    const maxX = state.points[state.points.length - 1].date.getTime();
-
+    if (!state.chartInstance) return { x: 0, y: 0 };
+    const canvasRect = chart.getBoundingClientRect();
     return {
-      x: padding.left + ((point.date.getTime() - minX) / (maxX - minX || 1)) * innerWidth,
-      y: padding.top + innerHeight - ((point.close - minPrice) / (maxPrice - minPrice || 1)) * innerHeight,
+      x: canvasRect.left + state.chartInstance.scales.x.getPixelForValue(point.date.getTime()),
+      y: canvasRect.top + state.chartInstance.scales.y.getPixelForValue(point.close),
     };
-  }
-
-  function svgElement(tagName, attributes, textContent) {
-    const namespace = "http://www.w3.org/2000/svg";
-    const element = document.createElementNS(namespace, tagName);
-    Object.entries(attributes).forEach(([key, value]) => {
-      element.setAttribute(key, String(value));
-    });
-    if (textContent) {
-      element.textContent = textContent;
-    }
-    return element;
   }
 
   function formatCurrency(value, currencyCode) {

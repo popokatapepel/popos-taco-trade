@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IE00B7Y34M31: Marktverlauf und Trump-Iran-Timeline</title>
+    <title>iran krieg taco trade</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🇺🇸</text></svg>">
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -12,21 +13,9 @@
         <p class="eyebrow">Market Context One-Pager</p>
         <div class="hero-copy">
           <div>
-            <h1>IE00B7Y34M31 im politischen Nachrichtenumfeld</h1>
+            <h1>Iran Krieg Taco Trade</h1>
             <p class="intro">
-              Diese Seite verbindet den historischen Kursverlauf aus der vorhandenen CSV mit
-              einer redaktionell gepflegten Timeline zu Donald Trumps Einlassungen im Kontext
-              Iran. Die Darstellung bleibt bewusst neutral und zeigt zeitliche Nahe, nicht
-              belegte Kausalitat.
-            </p>
-          </div>
-          <aside class="hero-note">
-            <h2>Hinweis</h2>
-            <p>
-              Die Ereignisliste ist als getrennte Datenquelle vorbereitet. Aussage-Paraphrasen
-              und Quellen sollten vor Veroffentlichung redaktionell verifiziert werden.
-            </p>
-          </aside>
+              Hi meine lieben kleinen Finanzhustler :D... hier mal eine kleine Aufbereitung eines Taco Trades im Kontext der Trump-Aussagen zum Iran. Als Vehikel habe ich den 3x S&P 500 von WisdomTree gewählt.
         </div>
       </section>
 
@@ -44,7 +33,7 @@
           <strong class="metric-value" data-metric="end">-</strong>
         </article>
         <article class="metric-card">
-          <span class="metric-label">Veranderung</span>
+          <span class="metric-label">Veränderung</span>
           <strong class="metric-value" data-metric="change">-</strong>
         </article>
         <article class="metric-card">
@@ -52,7 +41,7 @@
           <strong class="metric-value" data-metric="low">-</strong>
         </article>
         <article class="metric-card">
-          <span class="metric-label">Hochster Schluss</span>
+          <span class="metric-label">Höchster Schluss</span>
           <strong class="metric-value" data-metric="high">-</strong>
         </article>
         <article class="metric-card">
@@ -80,8 +69,8 @@
             <h2>Kurschart mit Ereignismarkern</h2>
           </div>
           <p class="section-copy">
-            Visualisiert wird zunachst der Schlusskurs. Ereignisse werden auf den nachsten
-            verfugbaren Handelstag gemappt und im Chart sowie in der Timeline gespiegelt.
+            Visualisiert wird zunächst der Schlusskurs. Ereignisse werden auf den nächsten
+            verfügbaren Handelstag gemappt und im Chart sowie in der Timeline gespiegelt.
           </p>
         </div>
 
@@ -101,16 +90,13 @@
           </div>
 
           <div class="chart-stage">
-            <svg id="priceChart" viewBox="0 0 960 460" role="img" aria-labelledby="chartHeading chartDesc">
-              <title id="chartHeading">Historischer Preisverlauf</title>
-              <desc id="chartDesc">SVG-Chart fuer den Schlusskurs mit annotierten Ereignissen.</desc>
-            </svg>
+            <canvas id="priceChart" role="img" aria-label="Historischer Preisverlauf"></canvas>
             <div class="chart-tooltip" id="chartTooltip" hidden></div>
           </div>
 
           <div class="chart-footer">
             <p id="chartStatus">CSV wird geladen...</p>
-            <p class="chart-note">Die Datensaetze sind statisch eingebettet und laufen ohne separaten Webserver.</p>
+            <p class="chart-note">Die Datensätze sind statisch eingebettet und laufen ohne separaten Webserver.</p>
           </div>
         </div>
       </section>
@@ -119,11 +105,11 @@
         <div class="section-heading">
           <div>
             <p class="section-kicker">Transaktionen</p>
-            <h2>Ausgefuhrte Trades im Betrachtungszeitraum</h2>
+            <h2>Ausgeführte Trades im Betrachtungszeitraum</h2>
           </div>
           <p class="section-copy">
-            Eingeblendet werden nur ausgefuehrte Transaktionen fuer dieselbe ISIN innerhalb des
-            dargestellten Chart-Zeitraums. Stornierte Orders und ausserhalb des Fensters liegende
+            Eingeblendet werden nur ausgeführte Transaktionen für dieselbe ISIN innerhalb des
+            dargestellten Chart-Zeitraums. Stornierte Orders und außerhalb des Fensters liegende
             Trades bleiben bewusst ausgeblendet.
           </p>
         </div>
@@ -138,8 +124,8 @@
             <h2>Trump-Aussagen im Iran-Kontext</h2>
           </div>
           <p class="section-copy">
-            Die Karten sind fur Paraphrasen, Quellen und eine knappe Markteinordnung ausgelegt.
-            Aktuell ist die Datenstruktur vorbereitet; verifizierte Inhalte konnen in
+            Die Karten sind für Paraphrasen, Quellen und eine knappe Markteinordnung ausgelegt.
+            Aktuell ist die Datenstruktur vorbereitet; verifizierte Inhalte können in
             <span class="mono">events.js</span> gepflegt werden.
           </p>
         </div>
@@ -148,6 +134,7 @@
       </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="./events.js"></script>
     <script src="./data.js"></script>
     <script src="./app.js"></script>
